@@ -1,8 +1,6 @@
 # Queue Buddy (Team Cookies and Cream)
 
-Queue Buddy is a native Android app that shows students how busy campus spots are
-**right now** — food spots, study spaces, gyms, printers, libraries, and student
-services — from quick, anonymous, crowdsourced reports.
+Queue Buddy is a native Android app that gives students real-time crowd updates for campus locations such as food spots, study spaces, gyms, printers, libraries, and student services through fast, anonymous, crowdsourced reports.
 
 > CS 446 / CS 646 / ECE 452 (Spring 2026) team project.
 
