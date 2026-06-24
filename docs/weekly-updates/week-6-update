@@ -1,0 +1,17 @@
+# Queue Buddy Week 6 Update
+
+June 8 - June 12
+
+* [All members: Amy, Marco, Oscar, Karim, Ayo, Andrew] planned a Week 6 (on June 18th) team meeting to review the current implementation progress, discuss the work completed so far, and align on the next steps for the prototype.
+
+* [Karim, Ayo, Andrew] started translating the Queue Buddy proposal requirements into early prototype tasks, focusing on the main features: campus location browsing, location detail pages, user reports, filtering, and report quality management.
+
+* [Karim] worked on the early structure for the campus location browsing feature, including how locations should be displayed with information such as name, category, crowd level, estimated wait time, and last updated time.
+
+* [Ayo] worked on the early design for the report submission flow, including simple report inputs such as Low/Medium/High crowd level, wait time ranges, seat availability, noise level, and resource status.
+
+* [Andrew] worked on the initial data model and test data for campus locations and reports, including sample locations for food spots, study areas, printers, and libraries.
+
+* [Karim, Ayo, Andrew] created a few early tests and checks for the prototype logic, including checking that sample campus locations can be loaded, filtered by category, and updated with recent report information.
+
+* [All members] agreed to push the current prototype work, test files, and updated documentation to the GitHub repository after the Week 6 meeting so the rest of the team can review and continue from the same codebase.
