@@ -16,7 +16,7 @@ services — from quick, anonymous, crowdsourced reports.
 
 ## Important documents
 - [Team contract](./docs/team-contract.md)
-- [Meeting minutes](./docs/meetings/)
+- [Weekly Updates](./docs/weekly-updates/)
 
 ## What the app does
 - Browse campus locations with their live crowd level, estimated wait, and last-updated time.
