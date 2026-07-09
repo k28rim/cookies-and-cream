@@ -1,9 +1,14 @@
 package com.cookiesandcream.queuebuddy.data
 
+import com.cookiesandcream.queuebuddy.domain.event.ReportEvent
+import com.cookiesandcream.queuebuddy.domain.event.ReportEventBus
 import com.cookiesandcream.queuebuddy.domain.model.StatusReport
 
-// Stores status reports in memory and persists them to disk (Repository pattern).
-class ReportRepository(private val store: ReportStore? = null) {
+// Stores reports in memory + on disk, and announces each new report on the event bus.
+class ReportRepository(
+    private val eventBus: ReportEventBus,
+    private val store: ReportStore? = null
+) {
 
     private val reports = LinkedHashMap<String, StatusReport>()
 
@@ -21,5 +26,6 @@ class ReportRepository(private val store: ReportStore? = null) {
     fun add(report: StatusReport) {
         reports[report.id] = report
         store?.save(reports.values.toList())
+        eventBus.publish(ReportEvent.ReportSubmitted(report))
     }
 }

@@ -6,14 +6,18 @@ import com.cookiesandcream.queuebuddy.data.LocationRepository
 import com.cookiesandcream.queuebuddy.data.ReportRepository
 import com.cookiesandcream.queuebuddy.data.ReportStore
 import com.cookiesandcream.queuebuddy.domain.QueueBuddyFacade
+import com.cookiesandcream.queuebuddy.domain.event.ReportEventBus
 import java.io.File
 import java.util.UUID
 
-// Wires the app's pieces together: data (repositories) -> domain (facade).
+// Wires the app's pieces together: a shared event bus, the repositories (data),
+// and the facade (domain) the UI talks to.
 class AppContainer(context: Context) {
+    val eventBus = ReportEventBus()
+
     private val reportStore = ReportStore(File(context.filesDir, "reports.json"))
     val locationRepository = LocationRepository()
-    val reportRepository = ReportRepository(reportStore)
+    val reportRepository = ReportRepository(eventBus, reportStore)
     val facade = QueueBuddyFacade(locationRepository, reportRepository)
 
     // Anonymous id for the current user, used to tag reports.
