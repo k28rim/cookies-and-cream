@@ -15,17 +15,25 @@ data class LocationDetail(
 )
 
 // Facade: the single entry point the UI uses, hiding the repositories and aggregator.
+// This week it also applies the home screen's search.
 class QueueBuddyFacade(
     private val locationRepository: LocationRepository,
     private val reportRepository: ReportRepository,
     private val aggregator: StatusAggregator = StatusAggregator()
 ) {
 
-    fun locationSummaries(): List<LocationSummary> {
+    fun locationSummaries(query: String = ""): List<LocationSummary> {
         val reports = reportRepository.allReports()
-        return locationRepository.allLocations().map { location ->
+        var summaries = locationRepository.allLocations().map { location ->
             LocationSummary(location, aggregator.aggregate(location, reports))
         }
+        if (query.isNotBlank()) {
+            summaries = summaries.filter {
+                it.location.name.contains(query, ignoreCase = true) ||
+                    it.location.building.contains(query, ignoreCase = true)
+            }
+        }
+        return summaries
     }
 
     fun locationDetail(locationId: String): LocationDetail? {
