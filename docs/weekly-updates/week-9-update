@@ -1,0 +1,17 @@
+# Queue Buddy Week 9 Update
+
+June 29 - July 6
+
+* [Amy] implemented search on the home screen: a search field that filters locations by name or building as you type.
+
+* [Marco] added the category filter chips (All, Food, Study Spaces, Gyms, Printers, Libraries, Services) so the list can be narrowed to one kind of location.
+
+* [Ayo] implemented the sort options: shortest wait, lowest crowd level, and most recently updated, selectable from a sort menu above the list.
+
+* [Karim] added the in-app event bus and hooked the report repository into it, so submitting a report publishes an event instead of screens polling for changes.
+
+* [Oscar] subscribed the home screen to the event bus so statuses refresh immediately after a report is submitted, and added a periodic 30-second refresh so the "updated X min ago" labels stay current.
+
+* [Andrew] tested the new search, filter, and sort behaviour on the emulator and reviewed and merged everyone's changes.
+
+* [All members] are assigning Week 10-11 tasks: a freshness model for aging reports (Live / Recent / Stale), rate limiting on submissions, report flagging, and the first unit tests.
