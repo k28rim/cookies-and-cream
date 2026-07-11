@@ -17,6 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -29,11 +31,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cookiesandcream.queuebuddy.domain.LocationSummary
+import com.cookiesandcream.queuebuddy.domain.SortOption
 import com.cookiesandcream.queuebuddy.domain.model.LocationCategory
 import com.cookiesandcream.queuebuddy.ui.components.CrowdBadge
 import com.cookiesandcream.queuebuddy.ui.components.relativeTime
@@ -82,6 +88,8 @@ fun HomeScreen(viewModel: HomeViewModel, onOpenLocation: (String) -> Unit) {
                 }
             }
 
+            SortMenu(current = state.sort, onSelect = viewModel::setSort)
+
             if (state.summaries.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -107,6 +115,30 @@ fun HomeScreen(viewModel: HomeViewModel, onOpenLocation: (String) -> Unit) {
                         LocationCard(summary) { onOpenLocation(summary.location.id) }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SortMenu(current: SortOption, onSelect: (SortOption) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        FilterChip(
+            selected = true,
+            onClick = { expanded = true },
+            label = { Text("Sort: ${current.displayName}") }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            SortOption.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.displayName) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    }
+                )
             }
         }
     }
