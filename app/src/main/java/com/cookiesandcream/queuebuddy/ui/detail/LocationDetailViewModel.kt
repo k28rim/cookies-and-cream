@@ -2,16 +2,21 @@ package com.cookiesandcream.queuebuddy.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.cookiesandcream.queuebuddy.AppContainer
 import com.cookiesandcream.queuebuddy.domain.LocationDetail
+import com.cookiesandcream.queuebuddy.domain.event.ReportEventListener
 import com.cookiesandcream.queuebuddy.domain.model.CrowdLevel
 import com.cookiesandcream.queuebuddy.domain.model.NoiseLevel
 import com.cookiesandcream.queuebuddy.domain.model.SeatAvailability
 import com.cookiesandcream.queuebuddy.domain.model.StatusReport
 import com.cookiesandcream.queuebuddy.domain.model.WaitEstimate
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 // The report being composed in the bottom sheet.
 data class ReportDraft(
@@ -36,8 +41,24 @@ class LocationDetailViewModel(
     private val _state = MutableStateFlow(DetailUiState())
     val state: StateFlow<DetailUiState> = _state.asStateFlow()
 
+    // Observer: refresh when a report for THIS location is submitted.
+    private val listener = ReportEventListener { event ->
+        if (event.locationId == locationId) refresh()
+    }
+
     init {
+        container.eventBus.subscribe(listener)
+        viewModelScope.launch {
+            while (isActive) {
+                delay(30_000)
+                refresh()
+            }
+        }
         refresh()
+    }
+
+    override fun onCleared() {
+        container.eventBus.unsubscribe(listener)
     }
 
     private fun refresh() {
@@ -56,7 +77,8 @@ class LocationDetailViewModel(
         _state.value = _state.value.copy(draft = transform(_state.value.draft))
     }
 
-    // Builds the report from the draft (Builder pattern) and stores it.
+    // Builds the report from the draft (Builder pattern) and stores it. The event bus
+    // then notifies this screen (and the home list) to refresh -- no manual reload.
     fun submit() {
         val draft = _state.value.draft
         val report = StatusReport.Builder(locationId, container.reporterId)
@@ -68,7 +90,6 @@ class LocationDetailViewModel(
             .build()
         container.facade.submitReport(report)
         _state.value = _state.value.copy(sheetOpen = false)
-        refresh()
     }
 
     companion object {
