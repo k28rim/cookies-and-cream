@@ -2,13 +2,18 @@ package com.cookiesandcream.queuebuddy.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.cookiesandcream.queuebuddy.AppContainer
 import com.cookiesandcream.queuebuddy.domain.LocationSummary
 import com.cookiesandcream.queuebuddy.domain.SortOption
+import com.cookiesandcream.queuebuddy.domain.event.ReportEventListener
 import com.cookiesandcream.queuebuddy.domain.model.LocationCategory
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 // The current search/filter/sort choices plus the resulting list.
 data class HomeUiState(
@@ -20,14 +25,29 @@ data class HomeUiState(
     val hasActiveFilters: Boolean get() = query.isNotBlank() || category != null
 }
 
-// MVVM: owns the home state; the screen just renders it.
+// MVVM: owns the home state. As an Observer it subscribes to the event bus so a new
+// report refreshes the list at once, and it re-checks every 30s so the relative
+// "updated X min ago" timestamps stay current.
 class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val listener = ReportEventListener { refresh() }
+
     init {
+        container.eventBus.subscribe(listener)
+        viewModelScope.launch {
+            while (isActive) {
+                delay(30_000)
+                refresh()
+            }
+        }
         refresh()
+    }
+
+    override fun onCleared() {
+        container.eventBus.unsubscribe(listener)
     }
 
     fun setQuery(query: String) = update { it.copy(query = query) }
