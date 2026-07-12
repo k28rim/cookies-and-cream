@@ -1,0 +1,19 @@
+# Queue Buddy Week 8 Update
+
+June 22 - June 29
+
+* [All members] prepared and delivered the P4 prototype presentation. The slides covered the app concept, the layered architecture and design, the report submission data flow, and a demo of the "finding food quickly" scenario (open app, filter to food, sort by shortest wait, open a location, submit a quick report, see the status update), backed by the actual app screens through to the moderation queue.
+
+* [Ayo] made the intro slide, introducing Queue Buddy and the problem it solves: real-time crowdsourced campus conditions so students can check crowd level, wait time, seating, and printer status before walking over.
+
+* [Oscar] made the architecture and design slide, showing the layered structure (UI/MVVM, a plain-Kotlin domain layer, and a data/repository layer) and the architectural styles and design patterns the app uses.
+
+* [Amy] made the report flow slide, tracing a submitted report from the report sheet through validation and storage to the event that refreshes the home, detail, and moderation screens.
+
+* [Andrew] made the user scenario and walkthrough slides, framing the "finding food quickly" scenario and storyboarding the six-step success flow from opening the app to seeing the updated status.
+
+* [Karim] made the app-screen slides for the home/browsing screen, the filtered-and-sorted food list, and the location detail page (slides 6-8).
+
+* [Marco] finished the deck with the remaining app-screen slides: the quick report sheet, the submission confirmation, and the moderation queue (slides 9-11).
+
+* [All members] are assigning Week 8-9 tasks to each member to complete this week's goals: implementing search, filtering by category, and sorting locations by shortest wait time, lowest crowd level, or most recently updated.
