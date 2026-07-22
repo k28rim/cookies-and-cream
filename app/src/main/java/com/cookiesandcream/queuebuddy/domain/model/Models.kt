@@ -92,8 +92,12 @@ data class StatusReport(
     val seatAvailability: SeatAvailability? = null,
     val noiseLevel: NoiseLevel? = null,
     val resourceStatus: ResourceStatus? = null,
-    val note: String? = null
+    val note: String? = null,
+    val flagCount: Int = 0,
+    val flaggedByReporterIds: List<String> = emptyList()
 ) {
+    val isFlagged: Boolean get() = flagCount > 0
+
     fun hasAnyField(): Boolean =
         crowdLevel != null || waitEstimate != null || seatAvailability != null ||
             noiseLevel != null || resourceStatus != null || !note.isNullOrBlank()

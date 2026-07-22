@@ -1,11 +1,22 @@
 package com.cookiesandcream.queuebuddy.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -17,11 +28,13 @@ import com.cookiesandcream.queuebuddy.domain.model.StatusReport
 import java.util.concurrent.TimeUnit
 
 fun relativeTime(timestampMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(nowMillis - timestampMillis)
+    val diff = nowMillis - timestampMillis
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
     return when {
         minutes < 1 -> "just now"
         minutes < 60 -> "$minutes min ago"
-        else -> "${minutes / 60} h ago"
+        minutes < 24 * 60 -> "${TimeUnit.MILLISECONDS.toHours(diff)} h ago"
+        else -> "${TimeUnit.MILLISECONDS.toDays(diff)} d ago"
     }
 }
 
@@ -41,6 +54,7 @@ fun CrowdBadge(crowdLevel: CrowdLevel?, modifier: Modifier = Modifier) {
         modifier = modifier
             .background(colour, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
+            .semantics { contentDescription = "Crowd level $label" }
     )
 }
 
@@ -62,6 +76,56 @@ fun FreshnessBadge(freshness: Freshness, modifier: Modifier = Modifier) {
             .padding(horizontal = 8.dp, vertical = 3.dp)
             .semantics { contentDescription = "Status freshness: ${freshness.displayName}" }
     )
+}
+
+// One report row with a flag toggle. Anonymous: we only ever show "Anonymous student".
+@Composable
+fun ReportCard(
+    report: StatusReport,
+    alreadyFlagged: Boolean,
+    onFlag: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(reportSummaryLine(report), style = MaterialTheme.typography.bodyMedium)
+                report.note?.let {
+                    Text(
+                        text = "\"$it\"",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Anonymous student · ${relativeTime(report.timestampMillis)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (report.isFlagged) {
+                        Text(
+                            text = "Flagged x${report.flagCount}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+            IconButton(onClick = onFlag) {
+                Icon(
+                    imageVector = if (alreadyFlagged) Icons.Filled.Flag else Icons.Outlined.Flag,
+                    contentDescription = if (alreadyFlagged) "Remove your flag from this report"
+                    else "Flag this report as inaccurate",
+                    tint = if (alreadyFlagged) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 fun reportSummaryLine(report: StatusReport): String {
