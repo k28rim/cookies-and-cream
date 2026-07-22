@@ -36,12 +36,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cookiesandcream.queuebuddy.domain.LocationSummary
 import com.cookiesandcream.queuebuddy.domain.SortOption
 import com.cookiesandcream.queuebuddy.domain.model.LocationCategory
 import com.cookiesandcream.queuebuddy.ui.components.CrowdBadge
+import com.cookiesandcream.queuebuddy.ui.components.FreshnessBadge
 import com.cookiesandcream.queuebuddy.ui.components.relativeTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +61,9 @@ fun HomeScreen(viewModel: HomeViewModel, onOpenLocation: (String) -> Unit) {
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::setQuery,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Search campus locations by name" },
                 placeholder = { Text("Search locations...") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true
@@ -151,14 +156,20 @@ private fun LocationCard(summary: LocationSummary, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .semantics { contentDescription = "Open details for ${summary.location.name}" }
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(summary.location.name, style = MaterialTheme.typography.titleMedium)
-            Text(
-                "${summary.location.category.displayName} · ${summary.location.building}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(summary.location.name, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${summary.location.category.displayName} · ${summary.location.building}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                FreshnessBadge(status.freshness)
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically

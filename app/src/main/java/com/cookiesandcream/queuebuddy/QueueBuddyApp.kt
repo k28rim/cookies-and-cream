@@ -20,8 +20,15 @@ class AppContainer(context: Context) {
     val reportRepository = ReportRepository(eventBus, reportStore)
     val facade = QueueBuddyFacade(locationRepository, reportRepository)
 
-    // Anonymous id for the current user, used to tag reports.
-    val reporterId: String = UUID.randomUUID().toString()
+    // A stable, anonymous id for this install. Persisted so reports stay attributed
+    // to the same reporter across launches (used for rate limiting), but never tied
+    // to a real identity.
+    val reporterId: String = run {
+        val prefs = context.getSharedPreferences("queue_buddy", Context.MODE_PRIVATE)
+        prefs.getString("reporter_id", null) ?: UUID.randomUUID().toString().also {
+            prefs.edit().putString("reporter_id", it).apply()
+        }
+    }
 
     fun start() {
         reportRepository.loadPersisted()
