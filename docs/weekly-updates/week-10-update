@@ -1,0 +1,17 @@
+# Queue Buddy Week 10 Update
+
+July 6 - July 13
+
+* [Andrew] implemented the per-category staleness policies that decide how long a report stays trustworthy: a food-queue report ages out faster than a study-space one, with each category getting its own Live / Recent / Stale windows.
+
+* [Karim] hooked the policies into the status aggregator through a factory method on the location category, so a location's status is now built only from reports that are still usable, and anything older than an hour is ignored.
+
+* [Oscar] added the freshness badge to the home screen's location cards, showing Live / Recent / Stale / "No recent data" so users can judge at a glance how current a status is.
+
+* [Ayo] built the report validation chain: a submitted report now passes through a row of checks that can each reject it with a clear reason, starting with empty-report and note-length checks.
+
+* [Amy] added rate limiting as the next link in the validation chain, so the same person can't spam back-to-back reports for the same location.
+
+* [Marco] tested the freshness windows and rejection messages on the emulator and reviewed and merged this week's changes.
+
+* [All members] are assigning Week 11 tasks: report flagging, a persistent anonymous reporter id so rate limiting survives app restarts, accessibility descriptions for screen readers, and the first unit tests.

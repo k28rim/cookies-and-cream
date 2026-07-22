@@ -1,0 +1,17 @@
+# Queue Buddy Week 11 Update
+
+July 13 - July 20
+
+* [Marco] implemented report flagging in the data layer. Reports carry a flag count, the repository can flag and unflag them, and a flag event goes out on the event bus so screens refresh.
+
+* [Amy] added the flagging UI. Each report on the detail screen now has a flag button so users can mark it as inaccurate, and flagged reports visibly show their flag count.
+
+* [Karim] made the anonymous reporter id persistent. It is generated once on first launch and stored in app storage, so rate limiting now survives app restarts while reports stay anonymous.
+
+* [Andrew] did an accessibility pass. Interactive controls now carry content descriptions for screen readers, and status information always pairs colour with text so colour is never the only signal.
+
+* [Oscar] wrote the project's first unit tests, covering the status aggregator, the report validation chain, and the staleness rules.
+
+* [Ayo] tested flagging and the persistent id on the emulator and reviewed and merged this week's changes.
+
+* [All members] are assigning Week 12 tasks for the final release, including a moderation queue for flagged reports, the campus selector, distance-based sorting and condition filters, the suggested-location feature from the presentation feedback, and app branding (theme, splash screen, app icon).
