@@ -4,12 +4,15 @@ import com.cookiesandcream.queuebuddy.domain.model.StatusReport
 import java.util.concurrent.CopyOnWriteArrayList
 
 // Event-driven style + Observer pattern. The data layer publishes a small event
-// whenever a report is submitted; screens subscribe and refresh themselves, so the
-// app updates on its own instead of each screen polling the repository.
+// whenever a report is submitted or flagged; screens subscribe and refresh themselves.
 sealed interface ReportEvent {
     val locationId: String
 
     data class ReportSubmitted(val report: StatusReport) : ReportEvent {
+        override val locationId: String get() = report.locationId
+    }
+
+    data class ReportFlagged(val report: StatusReport) : ReportEvent {
         override val locationId: String get() = report.locationId
     }
 }
