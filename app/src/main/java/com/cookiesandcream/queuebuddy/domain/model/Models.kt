@@ -1,14 +1,34 @@
 package com.cookiesandcream.queuebuddy.domain.model
 
+import com.cookiesandcream.queuebuddy.domain.staleness.GymStalenessPolicy
+import com.cookiesandcream.queuebuddy.domain.staleness.QueueStalenessPolicy
+import com.cookiesandcream.queuebuddy.domain.staleness.ServiceStalenessPolicy
+import com.cookiesandcream.queuebuddy.domain.staleness.StalenessPolicy
+import com.cookiesandcream.queuebuddy.domain.staleness.StudySpaceStalenessPolicy
 import kotlinx.serialization.Serializable
 
+// Factory Method: each category builds its own staleness Strategy.
 enum class LocationCategory(val displayName: String) {
-    FOOD("Food"),
-    STUDY("Study Spaces"),
-    GYM("Gyms"),
-    PRINTER("Printers"),
-    LIBRARY("Libraries"),
-    SERVICE("Services")
+    FOOD("Food") {
+        override fun createStalenessPolicy(): StalenessPolicy = QueueStalenessPolicy()
+    },
+    STUDY("Study Spaces") {
+        override fun createStalenessPolicy(): StalenessPolicy = StudySpaceStalenessPolicy()
+    },
+    GYM("Gyms") {
+        override fun createStalenessPolicy(): StalenessPolicy = GymStalenessPolicy()
+    },
+    PRINTER("Printers") {
+        override fun createStalenessPolicy(): StalenessPolicy = ServiceStalenessPolicy()
+    },
+    LIBRARY("Libraries") {
+        override fun createStalenessPolicy(): StalenessPolicy = StudySpaceStalenessPolicy()
+    },
+    SERVICE("Services") {
+        override fun createStalenessPolicy(): StalenessPolicy = ServiceStalenessPolicy()
+    };
+
+    abstract fun createStalenessPolicy(): StalenessPolicy
 }
 
 enum class CrowdLevel(val displayName: String, val rank: Int) {
@@ -39,6 +59,14 @@ enum class NoiseLevel(val displayName: String) {
 enum class ResourceStatus(val displayName: String) {
     WORKING("Working"),
     OUT_OF_ORDER("Out of order")
+}
+
+// How recent a location's status is.
+enum class Freshness(val displayName: String) {
+    LIVE("Live"),
+    RECENT("Recent"),
+    STALE("Stale"),
+    NO_DATA("No recent data")
 }
 
 @Serializable
@@ -110,5 +138,6 @@ data class LocationStatus(
     val noiseLevel: NoiseLevel?,
     val resourceStatus: ResourceStatus?,
     val lastUpdatedMillis: Long?,
+    val freshness: Freshness,
     val reportCount: Int
 )
