@@ -40,7 +40,7 @@ enum class CrowdLevel(val displayName: String, val rank: Int) {
 enum class WaitEstimate(val displayName: String, val representativeMinutes: Int) {
     NONE("No wait", 0),
     SHORT("~5 min", 5),
-    MEDIUM("5-15 min", 10),
+    MEDIUM("5–15 min", 10),
     LONG("15+ min", 20)
 }
 
@@ -70,6 +70,16 @@ enum class Freshness(val displayName: String) {
 }
 
 @Serializable
+enum class University(val displayName: String, val available: Boolean) {
+    WATERLOO("University of Waterloo", available = true),
+    LAURIER("Wilfrid Laurier University", available = false),
+    TORONTO("University of Toronto", available = false),
+    WESTERN("Western University", available = false),
+    MCMASTER("McMaster University", available = false),
+    QUEENS("Queen's University", available = false)
+}
+
+@Serializable
 data class CampusLocation(
     val id: String,
     val name: String,
@@ -78,7 +88,10 @@ data class CampusLocation(
     val description: String,
     val latitude: Double,
     val longitude: Double,
-    val amenities: List<String> = emptyList()
+
+    val amenities: List<String> = emptyList(),
+
+    val university: University = University.WATERLOO
 )
 
 @Serializable
@@ -98,7 +111,7 @@ data class StatusReport(
 ) {
     val isFlagged: Boolean get() = flagCount > 0
 
-    fun hasAnyField(): Boolean =
+    fun hasAnyStatusField(): Boolean =
         crowdLevel != null || waitEstimate != null || seatAvailability != null ||
             noiseLevel != null || resourceStatus != null || !note.isNullOrBlank()
 
@@ -118,7 +131,7 @@ data class StatusReport(
         fun resourceStatus(value: ResourceStatus?) = apply { resourceStatus = value }
         fun note(value: String?) = apply { note = value?.takeIf { it.isNotBlank() } }
 
-        fun build(nowMillis: Long = System.currentTimeMillis()) = StatusReport(
+        fun build(nowMillis: Long = System.currentTimeMillis()): StatusReport = StatusReport(
             id = java.util.UUID.randomUUID().toString(),
             locationId = locationId,
             reporterId = reporterId,

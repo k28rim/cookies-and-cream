@@ -15,22 +15,32 @@ import java.util.UUID
 class AppContainer(context: Context) {
     val eventBus = ReportEventBus()
 
+    private val prefs = context.getSharedPreferences("queue_buddy", Context.MODE_PRIVATE)
     private val reportStore = ReportStore(File(context.filesDir, "reports.json"))
     val locationRepository = LocationRepository()
     val reportRepository = ReportRepository(eventBus, reportStore)
     val facade = QueueBuddyFacade(locationRepository, reportRepository)
 
-    // A stable, anonymous id for this install. Persisted so reports stay attributed
-    // to the same reporter across launches (used for rate limiting), but never tied
-    // to a real identity.
-    val reporterId: String = run {
-        val prefs = context.getSharedPreferences("queue_buddy", Context.MODE_PRIVATE)
+    val reporterId: String by lazy {
         prefs.getString("reporter_id", null) ?: UUID.randomUUID().toString().also {
             prefs.edit().putString("reporter_id", it).apply()
         }
     }
 
+    val moderatorMode = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    // Off switch for the "Suggested" card on Home; the choice sticks across launches.
+    val suggestionsEnabled = kotlinx.coroutines.flow.MutableStateFlow(
+        prefs.getBoolean("suggestions_enabled", true)
+    )
+
+    fun setSuggestionsEnabled(enabled: Boolean) {
+        suggestionsEnabled.value = enabled
+        prefs.edit().putBoolean("suggestions_enabled", enabled).apply()
+    }
+
     fun start() {
+
         reportRepository.loadPersisted()
     }
 }
