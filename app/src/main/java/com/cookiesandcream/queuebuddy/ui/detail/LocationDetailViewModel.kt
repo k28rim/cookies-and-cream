@@ -32,7 +32,8 @@ data class ReportDraft(
 
 data class DetailUiState(
     val detail: LocationDetail? = null,
-    val sheetOpen: Boolean = false,
+    val moderatorMode: Boolean = false,
+    val reportSheetOpen: Boolean = false,
     val draft: ReportDraft = ReportDraft(),
     val message: String? = null,
     val submitSucceeded: Boolean = false
@@ -43,8 +44,8 @@ class LocationDetailViewModel(
     private val locationId: String
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(DetailUiState())
-    val state: StateFlow<DetailUiState> = _state.asStateFlow()
+    private val _uiState = MutableStateFlow(DetailUiState())
+    val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     // Observer: refresh when a report for THIS location changes.
     private val listener = ReportEventListener { event ->
@@ -53,6 +54,11 @@ class LocationDetailViewModel(
 
     init {
         container.eventBus.subscribe(listener)
+        viewModelScope.launch {
+            container.moderatorMode.collect { isModerator ->
+                _uiState.value = _uiState.value.copy(moderatorMode = isModerator)
+            }
+        }
         viewModelScope.launch {
             while (isActive) {
                 delay(30_000)
@@ -66,26 +72,20 @@ class LocationDetailViewModel(
         container.eventBus.unsubscribe(listener)
     }
 
-    private fun refresh() {
-        _state.value = _state.value.copy(detail = container.facade.locationDetail(locationId))
+    fun openReportSheet() = _uiState.value.let {
+        _uiState.value = it.copy(reportSheetOpen = true, draft = ReportDraft(), submitSucceeded = false)
     }
 
-    fun openSheet() {
-        _state.value = _state.value.copy(sheetOpen = true, draft = ReportDraft(), submitSucceeded = false)
-    }
-
-    fun closeSheet() {
-        _state.value = _state.value.copy(sheetOpen = false)
+    fun closeReportSheet() {
+        _uiState.value = _uiState.value.copy(reportSheetOpen = false)
     }
 
     fun updateDraft(transform: (ReportDraft) -> ReportDraft) {
-        _state.value = _state.value.copy(draft = transform(_state.value.draft))
+        _uiState.value = _uiState.value.copy(draft = transform(_uiState.value.draft))
     }
 
-    // Builds the report (Builder pattern) and submits it through the validation chain.
-    // The facade tells us whether it was accepted or why it was rejected.
-    fun submit() {
-        val draft = _state.value.draft
+    fun submitReport() {
+        val draft = _uiState.value.draft
         val report = StatusReport.Builder(locationId, container.reporterId)
             .crowdLevel(draft.crowdLevel)
             .waitEstimate(draft.waitEstimate)
@@ -94,34 +94,50 @@ class LocationDetailViewModel(
             .resourceStatus(draft.resourceStatus)
             .note(draft.note)
             .build()
+
         when (val result = container.facade.submitReport(report)) {
-            is SubmitResult.Success ->
-                _state.value = _state.value.copy(
-                    sheetOpen = false,
+            is SubmitResult.Success -> {
+                _uiState.value = _uiState.value.copy(
+                    reportSheetOpen = false,
                     message = "Thanks! Your report is live.",
                     submitSucceeded = true
                 )
-            is SubmitResult.Rejected ->
-                _state.value = _state.value.copy(message = result.reason, submitSucceeded = false)
+            }
+            is SubmitResult.Rejected -> {
+
+                _uiState.value = _uiState.value.copy(message = result.reason, submitSucceeded = false)
+            }
         }
     }
 
     fun toggleFlag(report: StatusReport) {
         if (alreadyFlaggedByMe(report)) {
             container.facade.unflagReport(report.id, container.reporterId)
-            _state.value = _state.value.copy(message = "Your flag was removed.")
+            _uiState.value = _uiState.value.copy(message = "Your flag was removed.")
         } else {
             container.facade.flagReport(report.id, container.reporterId)
-            _state.value = _state.value.copy(message = "Report flagged for moderators. Thanks!")
+            _uiState.value = _uiState.value.copy(
+                message = "Report flagged for moderators. Thanks for keeping data honest."
+            )
         }
         refresh()
+    }
+
+    fun removeReport(reportId: String) {
+        container.facade.removeReport(reportId)
+        _uiState.value = _uiState.value.copy(message = "Report removed.")
+        refresh()
+    }
+
+    fun consumeMessage() {
+        _uiState.value = _uiState.value.copy(message = null)
     }
 
     fun alreadyFlaggedByMe(report: StatusReport): Boolean =
         container.reporterId in report.flaggedByReporterIds
 
-    fun consumeMessage() {
-        _state.value = _state.value.copy(message = null)
+    private fun refresh() {
+        _uiState.value = _uiState.value.copy(detail = container.facade.locationDetail(locationId))
     }
 
     companion object {

@@ -1,0 +1,17 @@
+# Queue Buddy Week 12 Update
+
+July 20 - July 27
+
+* [Ayo] built the moderation queue. A moderator mode in the overflow menu reveals all flagged reports in one place, where a moderator can remove a report or dismiss its flags.
+
+* [Andrew] added the university selector under the title bar. Waterloo is live, and other Ontario campuses appear as selectable "coming soon" placeholders so more schools can be added later.
+
+* [Amy] added the "Nearest first" sort. With the user's permission the app takes a coarse location reading, shows the distance on each card, and orders the list by how close each spot is.
+
+* [Marco] added the quick condition filters (Low crowd, Seats available, Quiet, Working printer) and the status tags on location cards, plus a share button so a spot's current status can be sent to friends.
+
+* [Karim] built the suggested-location feature from the prototype presentation feedback. When a filter is active, the best pick (lowest wait plus walking time) is highlighted at the top of the list, and suggestions can be turned off.
+
+* [Oscar] finished the branding. The green theme, the Queue Buddy logo and wordmark in the header, the splash screen, and the app icon.
+
+* [All members] wrapped up the app's core features and are now rehearsing the P5 final presentation and drafting the final report.

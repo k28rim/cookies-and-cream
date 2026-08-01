@@ -1,8 +1,8 @@
 package com.cookiesandcream.queuebuddy.ui.detail
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,9 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.RateReview
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -30,6 +31,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,12 +39,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.cookiesandcream.queuebuddy.domain.LocationDetail
 import com.cookiesandcream.queuebuddy.domain.model.CrowdLevel
-import com.cookiesandcream.queuebuddy.domain.model.LocationCategory
 import com.cookiesandcream.queuebuddy.domain.model.NoiseLevel
 import com.cookiesandcream.queuebuddy.domain.model.ResourceStatus
 import com.cookiesandcream.queuebuddy.domain.model.SeatAvailability
@@ -50,22 +54,32 @@ import com.cookiesandcream.queuebuddy.domain.model.WaitEstimate
 import com.cookiesandcream.queuebuddy.ui.components.CrowdBadge
 import com.cookiesandcream.queuebuddy.ui.components.FreshnessBadge
 import com.cookiesandcream.queuebuddy.ui.components.ReportCard
+import com.cookiesandcream.queuebuddy.ui.components.TagChip
 import com.cookiesandcream.queuebuddy.ui.components.relativeTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LocationDetailScreen(viewModel: LocationDetailViewModel, onBack: () -> Unit) {
-    val state by viewModel.state.collectAsState()
+fun LocationDetailScreen(
+    viewModel: LocationDetailViewModel,
+    onBack: () -> Unit
+) {
+    val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val detail = state.detail
+    val haptics = LocalHapticFeedback.current
+    val context = LocalContext.current
 
-    // Show submit/flag feedback, then clear it so it isn't shown again on recompose.
     LaunchedEffect(state.message) {
-        state.message?.let {
-            snackbarHostState.showSnackbar(it)
+        state.message?.let { message ->
+            if (state.submitSucceeded) {
+
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+            snackbarHostState.showSnackbar(message)
             viewModel.consumeMessage()
         }
     }
+
+    val detail = state.detail
 
     Scaffold(
         topBar = {
@@ -75,14 +89,24 @@ fun LocationDetailScreen(viewModel: LocationDetailViewModel, onBack: () -> Unit)
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { detail?.let { shareStatus(context, it) } },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Share this location's status"
+                        }
+                    ) {
+                        Icon(Icons.Filled.Share, contentDescription = null)
+                    }
                 }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = viewModel::openSheet,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                onClick = viewModel::openReportSheet,
+                icon = { Icon(Icons.Filled.RateReview, contentDescription = null) },
                 text = { Text("Report status") },
                 modifier = Modifier.semantics {
                     contentDescription = "Submit a status report for this location"
@@ -91,23 +115,28 @@ fun LocationDetailScreen(viewModel: LocationDetailViewModel, onBack: () -> Unit)
         }
     ) { padding ->
         if (detail == null) {
-            Column(Modifier.padding(padding).padding(16.dp)) { Text("Location not found.") }
+            Column(Modifier.padding(padding).padding(16.dp)) {
+                Text("Location not found.")
+            }
             return@Scaffold
         }
+
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
         ) {
             item { StatusSection(detail) }
-            item { Text("Recent reports", style = MaterialTheme.typography.titleMedium) }
+            item {
+                Text("Recent reports", style = MaterialTheme.typography.titleMedium)
+            }
             if (detail.reports.isEmpty()) {
                 item {
                     Text(
-                        "No recent reports. Be the first to share what it's like right now!",
+                        "No reports yet. Be the first to share what it's like right now!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -117,20 +146,22 @@ fun LocationDetailScreen(viewModel: LocationDetailViewModel, onBack: () -> Unit)
                 ReportCard(
                     report = report,
                     alreadyFlagged = viewModel.alreadyFlaggedByMe(report),
-                    onFlag = { viewModel.toggleFlag(report) }
+                    moderatorMode = state.moderatorMode,
+                    onFlag = { viewModel.toggleFlag(report) },
+                    onRemove = { viewModel.removeReport(report.id) }
                 )
             }
             item { Spacer(Modifier.height(72.dp)) }
         }
     }
 
-    if (state.sheetOpen) {
+    if (state.reportSheetOpen) {
         ReportSheet(
             draft = state.draft,
-            isPrinterLocation = detail?.location?.category == LocationCategory.PRINTER,
+            isPrinterLocation = detail?.location?.category?.name == "PRINTER",
             onUpdate = viewModel::updateDraft,
-            onSubmit = viewModel::submit,
-            onDismiss = viewModel::closeSheet
+            onSubmit = viewModel::submitReport,
+            onDismiss = viewModel::closeReportSheet
         )
     }
 }
@@ -138,7 +169,11 @@ fun LocationDetailScreen(viewModel: LocationDetailViewModel, onBack: () -> Unit)
 @Composable
 private fun StatusSection(detail: LocationDetail) {
     val status = detail.status
-    Card {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(detail.location.description, style = MaterialTheme.typography.bodyMedium)
             Row(
@@ -154,8 +189,9 @@ private fun StatusSection(detail: LocationDetail) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
             Text(
-                text = status.waitLabel?.let { "Estimated wait: $it (from ${status.reportCount} recent reports)" }
+                text = status.waitLabel?.let { "Estimated wait: $it (based on ${status.reportCount} recent reports)" }
                     ?: "Estimated wait: no recent data",
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -167,6 +203,14 @@ private fun StatusSection(detail: LocationDetail) {
             }
             status.resourceStatus?.let {
                 Text("Equipment: ${it.displayName}", style = MaterialTheme.typography.bodyMedium)
+            }
+            if (detail.tags.isNotEmpty() || detail.location.amenities.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    detail.tags.forEach { TagChip(it, highlighted = true) }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    detail.location.amenities.take(3).forEach { TagChip(it) }
+                }
             }
         }
     }
@@ -195,28 +239,54 @@ private fun ReportSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ChipRow("How crowded?", CrowdLevel.entries.map { it.displayName }, draft.crowdLevel?.ordinal) { idx ->
-                onUpdate { d -> d.copy(crowdLevel = idx?.let { CrowdLevel.entries[it] }) }
-            }
-            ChipRow("Wait time", WaitEstimate.entries.map { it.displayName }, draft.waitEstimate?.ordinal) { idx ->
-                onUpdate { d -> d.copy(waitEstimate = idx?.let { WaitEstimate.entries[it] }) }
-            }
-            ChipRow("Seats", SeatAvailability.entries.map { it.displayName }, draft.seatAvailability?.ordinal) { idx ->
-                onUpdate { d -> d.copy(seatAvailability = idx?.let { SeatAvailability.entries[it] }) }
-            }
-            ChipRow("Noise", NoiseLevel.entries.map { it.displayName }, draft.noiseLevel?.ordinal) { idx ->
-                onUpdate { d -> d.copy(noiseLevel = idx?.let { NoiseLevel.entries[it] }) }
-            }
-            if (isPrinterLocation) {
-                ChipRow("Printer status", ResourceStatus.entries.map { it.displayName }, draft.resourceStatus?.ordinal) { idx ->
-                    onUpdate { d -> d.copy(resourceStatus = idx?.let { ResourceStatus.entries[it] }) }
+
+            ChipRow(
+                label = "How crowded is it?",
+                options = CrowdLevel.entries.map { it.displayName },
+                selectedIndex = draft.crowdLevel?.ordinal,
+                onSelect = { index ->
+                    onUpdate { it.copy(crowdLevel = index?.let { i -> CrowdLevel.entries[i] }) }
                 }
+            )
+            ChipRow(
+                label = "Wait time",
+                options = WaitEstimate.entries.map { it.displayName },
+                selectedIndex = draft.waitEstimate?.ordinal,
+                onSelect = { index ->
+                    onUpdate { it.copy(waitEstimate = index?.let { i -> WaitEstimate.entries[i] }) }
+                }
+            )
+            ChipRow(
+                label = "Seats",
+                options = SeatAvailability.entries.map { it.displayName },
+                selectedIndex = draft.seatAvailability?.ordinal,
+                onSelect = { index ->
+                    onUpdate { it.copy(seatAvailability = index?.let { i -> SeatAvailability.entries[i] }) }
+                }
+            )
+            ChipRow(
+                label = "Noise level",
+                options = NoiseLevel.entries.map { it.displayName },
+                selectedIndex = draft.noiseLevel?.ordinal,
+                onSelect = { index ->
+                    onUpdate { it.copy(noiseLevel = index?.let { i -> NoiseLevel.entries[i] }) }
+                }
+            )
+            if (isPrinterLocation) {
+                ChipRow(
+                    label = "Printer status",
+                    options = ResourceStatus.entries.map { it.displayName },
+                    selectedIndex = draft.resourceStatus?.ordinal,
+                    onSelect = { index ->
+                        onUpdate { it.copy(resourceStatus = index?.let { i -> ResourceStatus.entries[i] }) }
+                    }
+                )
             }
             OutlinedTextField(
                 value = draft.note,
-                onValueChange = { value -> onUpdate { d -> d.copy(note = value) } },
+                onValueChange = { value -> onUpdate { it.copy(note = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Optional note") },
+                placeholder = { Text("Optional note (e.g. \"line moving fast\")") },
                 singleLine = true,
                 supportingText = { Text("${draft.note.length}/140") }
             )
@@ -233,7 +303,12 @@ private fun ReportSheet(
 }
 
 @Composable
-private fun ChipRow(label: String, options: List<String>, selectedIndex: Int?, onSelect: (Int?) -> Unit) {
+private fun ChipRow(
+    label: String,
+    options: List<String>,
+    selectedIndex: Int?,
+    onSelect: (Int?) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -246,4 +321,20 @@ private fun ChipRow(label: String, options: List<String>, selectedIndex: Int?, o
             }
         }
     }
+}
+
+private fun shareStatus(context: android.content.Context, detail: LocationDetail) {
+    val status = detail.status
+    val text = buildString {
+        append(detail.location.name)
+        append(": ")
+        append(status.crowdLevel?.let { "${it.displayName} crowd" } ?: "no crowd data")
+        status.waitLabel?.let { append(", est. wait $it") }
+        append(" right now — via Queue Buddy")
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share status"))
 }

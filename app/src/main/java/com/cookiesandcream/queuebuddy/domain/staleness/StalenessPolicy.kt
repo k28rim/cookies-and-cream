@@ -2,8 +2,8 @@ package com.cookiesandcream.queuebuddy.domain.staleness
 
 import com.cookiesandcream.queuebuddy.domain.model.Freshness
 
-// Strategy pattern: each category decides how quickly its reports go stale. The base
-// interface holds the shared rules; subclasses just supply the per-category windows.
+// Strategy pattern: each location category gets its own rules for how fast
+// reports age from Live to Recent to Stale.
 interface StalenessPolicy {
 
     // How long a report still counts as "Live".
@@ -16,6 +16,7 @@ interface StalenessPolicy {
     val maxAgeMinutes: Int get() = 60
 
     fun freshnessOf(ageMinutes: Long): Freshness = when {
+        ageMinutes < 0 -> Freshness.LIVE
         ageMinutes <= liveMinutes -> Freshness.LIVE
         ageMinutes <= staleMinutes -> Freshness.RECENT
         else -> Freshness.STALE

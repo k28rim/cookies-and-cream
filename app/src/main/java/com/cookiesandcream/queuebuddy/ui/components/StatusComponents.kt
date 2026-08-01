@@ -1,6 +1,7 @@
 package com.cookiesandcream.queuebuddy.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,10 +12,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,19 +86,33 @@ fun FreshnessBadge(freshness: Freshness, modifier: Modifier = Modifier) {
 fun ReportCard(
     report: StatusReport,
     alreadyFlagged: Boolean,
+    moderatorMode: Boolean,
     onFlag: () -> Unit,
+    onRemove: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (report.isFlagged) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            }
+        )
+    ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(reportSummaryLine(report), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = reportSummaryLine(report),
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 report.note?.let {
                     Text(
-                        text = "\"$it\"",
+                        text = "“$it”",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -108,7 +125,7 @@ fun ReportCard(
                     )
                     if (report.isFlagged) {
                         Text(
-                            text = "Flagged x${report.flagCount}",
+                            text = "Flagged ×${report.flagCount}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -118,11 +135,19 @@ fun ReportCard(
             IconButton(onClick = onFlag) {
                 Icon(
                     imageVector = if (alreadyFlagged) Icons.Filled.Flag else Icons.Outlined.Flag,
-                    contentDescription = if (alreadyFlagged) "Remove your flag from this report"
-                    else "Flag this report as inaccurate",
+                    contentDescription = if (alreadyFlagged) {
+                        "Remove your flag from this report"
+                    } else {
+                        "Flag this report as inaccurate"
+                    },
                     tint = if (alreadyFlagged) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            if (moderatorMode) {
+                TextButton(onClick = onRemove) {
+                    Text("Remove")
+                }
             }
         }
     }
@@ -137,4 +162,25 @@ fun reportSummaryLine(report: StatusReport): String {
         report.resourceStatus?.let { add(it.displayName) }
     }
     return if (parts.isEmpty()) "Note only" else parts.joinToString(" · ")
+}
+
+// A small pill. Status tags (Low crowd, Seats available, Quiet, Working printer) use the
+// brand-green highlight; neutral tags like amenities stay grey.
+@Composable
+fun TagChip(text: String, modifier: Modifier = Modifier, highlighted: Boolean = false) {
+    val green = Color(0xFF0F7A5F)
+    val container = if (highlighted) green.copy(alpha = 0.12f)
+    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val contentColor = if (highlighted) green else MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = if (highlighted) green.copy(alpha = 0.4f)
+    else MaterialTheme.colorScheme.outlineVariant
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = contentColor,
+        modifier = modifier
+            .background(container, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    )
 }

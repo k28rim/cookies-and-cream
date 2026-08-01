@@ -7,14 +7,8 @@ sealed interface ValidationResult {
     data class Invalid(val reason: String) : ValidationResult
 }
 
-// Extra facts a rule may need that aren't on the report itself.
-data class ValidationContext(
-    val nowMillis: Long,
-    val lastReportFromReporterMillis: Long?
-)
-
-// Chain of Responsibility: each validator either rejects the report or passes it to
-// the next link. Adding a new rule is just one more class in the chain.
+// Chain of Responsibility: each validator does one check, then hands the report
+// to the next link. The first failure stops the chain with a reason.
 abstract class ReportValidator {
     private var next: ReportValidator? = null
 
@@ -32,20 +26,28 @@ abstract class ReportValidator {
     protected abstract fun check(report: StatusReport, context: ValidationContext): ValidationResult
 }
 
-// A report must say something.
+data class ValidationContext(
+    val nowMillis: Long,
+
+    val lastReportFromReporterMillis: Long?
+)
+
 class HasContentValidator : ReportValidator() {
     override fun check(report: StatusReport, context: ValidationContext): ValidationResult =
-        if (report.hasAnyField()) ValidationResult.Valid
-        else ValidationResult.Invalid("Pick at least one status (crowd, wait, seats, noise, or printer) before submitting.")
+        if (report.hasAnyStatusField()) {
+            ValidationResult.Valid
+        } else {
+            ValidationResult.Invalid("Please select at least one status (crowd, wait, seats, noise, or resource) before submitting.")
+        }
 }
 
-// One reporter can't spam the same location.
 class RateLimitValidator(private val cooldownMinutes: Int = 10) : ReportValidator() {
     override fun check(report: StatusReport, context: ValidationContext): ValidationResult {
         val last = context.lastReportFromReporterMillis ?: return ValidationResult.Valid
-        val elapsed = (context.nowMillis - last) / 60_000
-        return if (elapsed < cooldownMinutes) {
-            ValidationResult.Invalid("You reported here recently. Try again in about ${cooldownMinutes - elapsed} min.")
+        val elapsedMinutes = (context.nowMillis - last) / 60_000
+        return if (elapsedMinutes < cooldownMinutes) {
+            val wait = cooldownMinutes - elapsedMinutes
+            ValidationResult.Invalid("You already reported on this location recently. Try again in about $wait min.")
         } else {
             ValidationResult.Valid
         }
@@ -56,8 +58,11 @@ class RateLimitValidator(private val cooldownMinutes: Int = 10) : ReportValidato
 class NoteValidator(private val maxLength: Int = 140) : ReportValidator() {
     override fun check(report: StatusReport, context: ValidationContext): ValidationResult {
         val note = report.note ?: return ValidationResult.Valid
-        return if (note.length > maxLength) ValidationResult.Invalid("Notes must be $maxLength characters or fewer.")
-        else ValidationResult.Valid
+        return if (note.length > maxLength) {
+            ValidationResult.Invalid("Notes must be $maxLength characters or fewer.")
+        } else {
+            ValidationResult.Valid
+        }
     }
 }
 
